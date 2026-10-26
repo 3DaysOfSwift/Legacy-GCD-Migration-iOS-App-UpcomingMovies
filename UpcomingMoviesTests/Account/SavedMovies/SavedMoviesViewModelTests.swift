@@ -8,22 +8,27 @@
 
 import XCTest
 @testable import UpcomingMovies
+@testable import UpcomingMoviesDomain
 
+@MainActor
 final class SavedMoviesViewModelTests: XCTestCase {
 
-    private var mockInteractor: MockSavedMoviesInteractor!
+    private var savedMoviesFeature: SavedMoviesFeature!
+    private var accountUseCase: AccountUseCaseProtocolMock!
     private var viewModelToTest: SavedMoviesViewModelProtocol!
 
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        mockInteractor = MockSavedMoviesInteractor()
-        viewModelToTest = SavedMoviesViewModel(interactor: mockInteractor)
+    override func setUp() {
+        super.setUp()
+        accountUseCase = AccountUseCaseProtocolMock()
+        savedMoviesFeature = SavedMoviesFeature(accountUseCase: accountUseCase)
+        viewModelToTest = SavedMoviesViewModel(savedMoviesFeature: savedMoviesFeature, collection: .favorites)
     }
 
-    override func tearDownWithError() throws {
-        mockInteractor = nil
+    override func tearDown() {
+        savedMoviesFeature = nil
+        accountUseCase = nil
         viewModelToTest = nil
-        try super.tearDownWithError()
+        super.tearDown()
     }
 
     func testSavedMoviesTitle() {
@@ -53,9 +58,9 @@ final class SavedMoviesViewModelTests: XCTestCase {
             XCTAssertEqual(state, statesToReceive.removeFirst())
             expectation.fulfill()
         }
-        mockInteractor.getSavedMoviesResult = Result.success(moviestoTest)
+        accountUseCase.getFavoriteListResult = Result.success(moviestoTest.map(Movie.init))
         viewModelToTest.getCollectionList()
-        mockInteractor.getSavedMoviesResult = Result.success([])
+        accountUseCase.getFavoriteListResult = Result.success([])
         viewModelToTest.getCollectionList()
         // Assert
         wait(for: [expectation], timeout: 1.0)
@@ -70,7 +75,7 @@ final class SavedMoviesViewModelTests: XCTestCase {
             XCTAssertEqual(state, .paging(moviesToTest, next: 2))
             expectation.fulfill()
         }
-        mockInteractor.getSavedMoviesResult = Result.success(moviesToTest)
+        accountUseCase.getFavoriteListResult = Result.success(moviesToTest.map(Movie.init))
         viewModelToTest.getCollectionList()
         // Assert
         wait(for: [expectation], timeout: 1.0)
@@ -85,7 +90,7 @@ final class SavedMoviesViewModelTests: XCTestCase {
             XCTAssertEqual(state, .empty)
             expectation.fulfill()
         }
-        mockInteractor.getSavedMoviesResult = Result.success(moviesToTest)
+        accountUseCase.getFavoriteListResult = Result.success([])
         viewModelToTest.getCollectionList()
         // Assert
         wait(for: [expectation], timeout: 1.0)
@@ -100,7 +105,7 @@ final class SavedMoviesViewModelTests: XCTestCase {
             XCTAssertEqual(state, .error(errorToTest))
             expectation.fulfill()
         }
-        mockInteractor.getSavedMoviesResult = Result.failure(errorToTest)
+        accountUseCase.getFavoriteListResult = Result.failure(errorToTest)
         viewModelToTest.getCollectionList()
         // Assert
         wait(for: [expectation], timeout: 1.0)
@@ -110,7 +115,7 @@ final class SavedMoviesViewModelTests: XCTestCase {
         // Arrange
         let moviesToTest = [MockMovieProtocol(id: 1), MockMovieProtocol(id: 2)]
         // Act
-        mockInteractor.getSavedMoviesResult = Result.success(moviesToTest)
+        accountUseCase.getFavoriteListResult = Result.success(moviesToTest.map(Movie.init))
         viewModelToTest.getCollectionList()
         let cellsCount = viewModelToTest.movieCells.count
         // Assert
@@ -121,7 +126,7 @@ final class SavedMoviesViewModelTests: XCTestCase {
         // Arrange
         let moviesToTest: [MovieProtocol] = []
         // Act
-        mockInteractor.getSavedMoviesResult = Result.success(moviesToTest)
+        accountUseCase.getFavoriteListResult = Result.success([])
         viewModelToTest.getCollectionList()
         let cellsCount = viewModelToTest.movieCells.count
         // Assert
@@ -133,7 +138,7 @@ final class SavedMoviesViewModelTests: XCTestCase {
         let moviesToTest = [MockMovieProtocol(id: 1), MockMovieProtocol(id: 2)]
         let indexToTest = Int.random(in: 0...moviesToTest.count - 1)
         // Act
-        mockInteractor.getSavedMoviesResult = Result.success(moviesToTest)
+        accountUseCase.getFavoriteListResult = Result.success(moviesToTest.map(Movie.init))
         viewModelToTest.getCollectionList()
         let movie = viewModelToTest.movie(at: indexToTest)
         // Assert
