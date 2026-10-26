@@ -27,10 +27,4 @@ protocol SavedMoviesViewModelProtocol {
 
 }
 
-protocol SavedMoviesInteractorProtocol {
-
-    func getSavedMovies(page: Int?, completion: @escaping (Result<[MovieProtocol], Error>) -> Void)
-
-}
-
 protocol SavedMoviesCoordinatorProtocol: AnyObject, MovieDetailCoordinable {}

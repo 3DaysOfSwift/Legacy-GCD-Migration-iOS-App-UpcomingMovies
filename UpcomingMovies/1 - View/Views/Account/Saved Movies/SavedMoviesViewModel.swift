@@ -8,11 +8,14 @@
 
 import Foundation
 
+@MainActor
 final class SavedMoviesViewModel: SavedMoviesViewModelProtocol, SimpleViewStateProcessable {
 
     // MARK: - Dependencies
 
-    private let interactor: SavedMoviesInteractorProtocol
+    private let savedMoviesFeature: SavedMoviesFeature
+    private let collection: SavedMoviesCollection
+    private var loadTask: Task<Void, Never>?
 
     // MARK: - Reactive properties
 
@@ -41,8 +44,9 @@ final class SavedMoviesViewModel: SavedMoviesViewModelProtocol, SimpleViewStateP
 
     // MARK: - Initializers
 
-    init(interactor: SavedMoviesInteractorProtocol) {
-        self.interactor = interactor
+    init(savedMoviesFeature: SavedMoviesFeature, collection: SavedMoviesCollection) {
+        self.savedMoviesFeature = savedMoviesFeature
+        self.collection = collection
     }
 
     // MARK: - SavedMoviesViewModelProtocol
@@ -63,15 +67,18 @@ final class SavedMoviesViewModel: SavedMoviesViewModelProtocol, SimpleViewStateP
     // MARK: - Private
 
     private func fetchCollectionList(page: Int, showLoader: Bool) {
+        guard loadTask == nil else { return }
         startLoading.value = showLoader
-        interactor.getSavedMovies(page: page) { result in
+        loadTask = Task { [weak self] in
+            guard let self else { return }
+            defer { self.loadTask = nil }
             self.startLoading.value = false
-            switch result {
-            case .success(let movies):
+            do {
+                let movies = try await self.savedMoviesFeature.loadMovies(in: self.collection, page: page)
                 self.viewState.value = self.processResult(movies,
                                                           currentPage: page,
                                                           currentEntities: self.movies)
-            case .failure(let error):
+            } catch {
                 self.viewState.value = .error(error)
             }
         }
