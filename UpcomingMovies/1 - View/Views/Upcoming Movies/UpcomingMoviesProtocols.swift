@@ -8,6 +8,7 @@
 
 import UIKit
 
+@MainActor
 protocol UpcomingMoviesViewModelProtocol {
 
     var viewState: AnyBehaviorBindable<UpcomingMoviesViewState> { get }
@@ -22,12 +23,14 @@ protocol UpcomingMoviesViewModelProtocol {
     /**
      * Retrieves upcoming movies information.
      */
-    func getMovies()
+    @discardableResult
+    func getMovies() -> Task<Void, Never>
 
     /**
      * Retrieves upcoming movies information resetting the current page to zero.
      */
-    func refreshMovies()
+    @discardableResult
+    func refreshMovies() -> Task<Void, Never>
 
     func movie(for index: Int) -> MovieProtocol
 

@@ -8,13 +8,15 @@
 
 import Foundation
 
+@MainActor
 final class UpcomingMoviesViewModel: UpcomingMoviesViewModelProtocol, SimpleViewStateProcessable {
 
     // MARK: - Dependencies
 
-    private let interactor: MoviesInteractorProtocol
+    private let upcomingMoviesFeature: UpcomingMoviesFeature
     private let factory: UpcomingMoviesFactoryProtocol
     private let userPreferencesHandler: UserPreferencesHandlerProtocol
+    private var loadTasks: [Int: Task<Void, Never>] = [:]
 
     // MARK: - Reactive properties
 
@@ -42,21 +44,25 @@ final class UpcomingMoviesViewModel: UpcomingMoviesViewModelProtocol, SimpleView
 
     // MARK: - Initializers
 
-    init(interactor: MoviesInteractorProtocol, factory: UpcomingMoviesFactoryProtocol, userPreferencesHandler: UserPreferencesHandlerProtocol) {
-        self.interactor = interactor
+    init(upcomingMoviesFeature: UpcomingMoviesFeature,
+         factory: UpcomingMoviesFactoryProtocol,
+         userPreferencesHandler: UserPreferencesHandlerProtocol) {
+        self.upcomingMoviesFeature = upcomingMoviesFeature
         self.factory = factory
         self.userPreferencesHandler = userPreferencesHandler
     }
 
     // MARK: - UpcomingMoviesViewModelProtocol
 
-    func getMovies() {
+    @discardableResult
+    func getMovies() -> Task<Void, Never> {
         let showLoader = viewState.value.isInitialPage
-        fetchMovies(currentPage: viewState.value.currentPage, showLoader: showLoader)
+        return loadMovies(page: viewState.value.currentPage, showLoader: showLoader)
     }
 
-    func refreshMovies() {
-        self.fetchMovies(currentPage: 1, showLoader: false)
+    @discardableResult
+    func refreshMovies() -> Task<Void, Never> {
+        loadMovies(page: 1, showLoader: false)
     }
 
     func movie(for index: Int) -> MovieProtocol {
@@ -81,19 +87,31 @@ final class UpcomingMoviesViewModel: UpcomingMoviesViewModelProtocol, SimpleView
 
     // MARK: - Private
 
-    private func fetchMovies(currentPage: Int, showLoader: Bool = false) {
+    private func loadMovies(page: Int, showLoader: Bool) -> Task<Void, Never> {
+        if let loadTask = loadTasks[page] {
+            return loadTask
+        }
+
         startLoading.value = showLoader
-        interactor.getMovies(page: currentPage, completion: { result in
-            self.startLoading.value = false
-            switch result {
-            case .success(let movies):
+        let upcomingMoviesFeature = self.upcomingMoviesFeature
+        let loadTask = Task { [weak self] in
+            defer { self?.loadTasks[page] = nil }
+            do {
+                let movies = try await upcomingMoviesFeature.loadMovies(page: page)
+                guard let self else { return }
                 self.viewState.value = self.processResult(movies,
-                                                          currentPage: currentPage,
+                                                          currentPage: page,
                                                           currentEntities: self.movies)
-            case .failure(let error):
-                self.viewState.value = .error(error)
+            } catch is CancellationError {
+                // A newer load is already responsible for publishing the screen state.
+            } catch {
+                self?.viewState.value = .error(error)
             }
-        })
+            self?.startLoading.value = false
+        }
+
+        loadTasks[page] = loadTask
+        return loadTask
     }
 
 }

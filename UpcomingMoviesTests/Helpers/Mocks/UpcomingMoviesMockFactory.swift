@@ -7,14 +7,16 @@
 //
 
 @testable import UpcomingMovies
+import UpcomingMoviesDomain
 import UIKit
 
-final class MockUpcomingMoviesInteractor: MoviesInteractorProtocol {
+final class MockUpcomingMoviesLoader {
 
-    var displayTitle: String = "Upcoming Movies"
+    var upcomingMovies: Result<[Movie], Error>?
+    private(set) var loadCallCount = 0
 
-    var upcomingMovies: Result<[MovieProtocol], Error>?
-    func getMovies(page: Int, completion: @escaping (Result<[MovieProtocol], Error>) -> Void) {
+    func loadMovies(page: Int, completion: @escaping (Result<[Movie], Error>) -> Void) {
+        loadCallCount += 1
         if let upcomingMovies {
             completion(upcomingMovies)
         }

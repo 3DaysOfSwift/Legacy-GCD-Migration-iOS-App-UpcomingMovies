@@ -23,7 +23,10 @@ final class MovieRemoteDataSource: MovieRemoteDataSourceProtocol {
         client.getUpcomingMovies(page: page, completion: { result in
             switch result {
             case .success(let movieResult):
-                guard let movieResult = movieResult else { return }
+                guard let movieResult = movieResult else {
+                    completion(.failure(APIError.invalidData))
+                    return
+                }
                 let movies = movieResult.results.map { $0.asDomain() }
                 completion(.success(movies))
             case .failure(let error):

@@ -8,92 +8,95 @@
 
 import XCTest
 @testable import UpcomingMovies
+import UpcomingMoviesDomain
 
+@MainActor
 final class UpcomingMoviesViewModelTests: XCTestCase {
 
     typealias MoviesViewState = SimpleViewState<MovieProtocol>
 
-    private var mockInteractor: MockUpcomingMoviesInteractor!
+    private var mockMoviesLoader: MockUpcomingMoviesLoader!
     private var mockFactory = MockUpcomingMoviesFactory()
     private var mockUserPreferencesHandler = MockUserPreferencesHandler()
     private var viewModelToTest: UpcomingMoviesViewModelProtocol!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
-        mockInteractor = MockUpcomingMoviesInteractor()
-        viewModelToTest = UpcomingMoviesViewModel(interactor: mockInteractor,
+        mockMoviesLoader = MockUpcomingMoviesLoader()
+        let upcomingMoviesFeature = UpcomingMoviesFeature(loadUpcomingMovies: { page, completion in
+            self.mockMoviesLoader.loadMovies(page: page, completion: completion)
+        }, makeMoviePresentationModel: { movie in
+            MockMovieProtocol(id: movie.id)
+        })
+        viewModelToTest = UpcomingMoviesViewModel(upcomingMoviesFeature: upcomingMoviesFeature,
                                                   factory: mockFactory,
                                                   userPreferencesHandler: mockUserPreferencesHandler)
     }
 
     override func tearDownWithError() throws {
-        mockInteractor = nil
+        mockMoviesLoader = nil
         viewModelToTest = nil
         try super.tearDownWithError()
     }
 
-    func testGetMoviesEmpty() {
+    func testGetMoviesEmpty() async {
         // Arrange
-        let moviesToTest: [MovieProtocol] = []
-        let expectation = XCTestExpectation(description: "Should get empty state")
+        let moviesToTest: [Movie] = []
         // Act
-        viewModelToTest.viewState.bind { state in
-            XCTAssertTrue(state == .empty)
-            expectation.fulfill()
-        }
-        mockInteractor.upcomingMovies = Result.success(moviesToTest)
-        viewModelToTest.getMovies()
+        mockMoviesLoader.upcomingMovies = Result.success(moviesToTest)
+        await viewModelToTest.getMovies().value
         // Assert
-        wait(for: [expectation], timeout: 1.0)
+        XCTAssertEqual(viewModelToTest.viewState.value, .empty)
     }
 
-    func testGetMoviesPopulated() {
+    func testGetMoviesPopulated() async {
         // Arrange
-        let moviesToTest = [MockMovieProtocol(id: 1), MockMovieProtocol(id: 2)]
-        var statesToReceive: [MoviesViewState] = [.paging(moviesToTest, next: 2), .populated(moviesToTest)]
-
-        let expectation = XCTestExpectation(description: "Should get populated state after a paging state")
+        let receivedMovies = [makeMovie(id: 1), makeMovie(id: 2)]
+        let expectedMovies: [MovieProtocol] = [MockMovieProtocol(id: 1), MockMovieProtocol(id: 2)]
+        var statesToReceive: [MoviesViewState] = [.paging(expectedMovies, next: 2), .populated(expectedMovies)]
         // Act
-        viewModelToTest.viewState.bind { state in
-            XCTAssertEqual(state, statesToReceive.removeFirst())
-            expectation.fulfill()
-        }
-        mockInteractor.upcomingMovies = Result.success(moviesToTest)
-        viewModelToTest.getMovies()
-        mockInteractor.upcomingMovies = Result.success([])
-        viewModelToTest.getMovies()
+        mockMoviesLoader.upcomingMovies = Result.success(receivedMovies)
+        await viewModelToTest.getMovies().value
+        XCTAssertEqual(viewModelToTest.viewState.value, statesToReceive.removeFirst())
+        mockMoviesLoader.upcomingMovies = Result.success([])
+        await viewModelToTest.getMovies().value
         // Assert
-        wait(for: [expectation], timeout: 1.0)
+        XCTAssertEqual(viewModelToTest.viewState.value, statesToReceive.removeFirst())
     }
 
-    func testGetMoviesPaging() {
+    func testGetMoviesPaging() async {
         // Arrange
-        let moviestoTest = [MockMovieProtocol(id: 1), MockMovieProtocol(id: 2)]
-        let expectation = XCTestExpectation(description: "Should get paging state")
+        let receivedMovies = [makeMovie(id: 1), makeMovie(id: 2)]
+        let expectedMovies: [MovieProtocol] = [MockMovieProtocol(id: 1), MockMovieProtocol(id: 2)]
         // Act
-        viewModelToTest.viewState.bind { state in
-            XCTAssertEqual(state, .paging(moviestoTest, next: 2))
-            expectation.fulfill()
-        }
-        mockInteractor.upcomingMovies = Result.success(moviestoTest)
-        viewModelToTest.getMovies()
+        mockMoviesLoader.upcomingMovies = Result.success(receivedMovies)
+        await viewModelToTest.getMovies().value
         // Assert
-        wait(for: [expectation], timeout: 1.0)
+        XCTAssertEqual(viewModelToTest.viewState.value, .paging(expectedMovies, next: 2))
     }
 
-    func testGetMoviesError() {
+    func testGetMoviesError() async {
         // Arrange
         let errorToTest = TestError()
-        let expectation = XCTestExpectation(description: "Should get error state")
         // Act
-        viewModelToTest.viewState.bind { state in
-            XCTAssertTrue(state == .error(errorToTest))
-            expectation.fulfill()
-        }
-        mockInteractor.upcomingMovies = Result.failure(errorToTest)
-        viewModelToTest.getMovies()
+        mockMoviesLoader.upcomingMovies = Result.failure(errorToTest)
+        await viewModelToTest.getMovies().value
         // Assert
-        wait(for: [expectation], timeout: 1.0)
+        XCTAssertEqual(viewModelToTest.viewState.value, .error(errorToTest))
+    }
+
+    func testGetMoviesReusesTheInFlightLoadForTheSamePage() async {
+        // Arrange
+        mockMoviesLoader.upcomingMovies = .success([makeMovie(id: 1)])
+
+        // Act
+        let firstLoadTask = viewModelToTest.getMovies()
+        let secondLoadTask = viewModelToTest.getMovies()
+        await firstLoadTask.value
+        await secondLoadTask.value
+
+        // Assert
+        XCTAssertEqual(mockMoviesLoader.loadCallCount, 1)
     }
 
     func testUpcomingMovieCellPosterURL() {
@@ -112,6 +115,17 @@ final class UpcomingMoviesViewModelTests: XCTestCase {
         let backdropURL = cellViewModel.backdropURL
         // Assert
         XCTAssertEqual(backdropURL, URL(string: "https://image.tmdb.org/t/p/w500/backdrop.jpg"))
+    }
+
+    private func makeMovie(id: Int) -> Movie {
+        Movie(id: id,
+              title: "Movie \(id)",
+              genreIds: nil,
+              overview: "Overview",
+              posterPath: nil,
+              backdropPath: nil,
+              releaseDate: nil,
+              voteAverage: nil)
     }
 
 }
