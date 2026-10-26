@@ -69,24 +69,6 @@ final class MockSignInViewControllerDelegate: MockViewController, SignInViewCont
 
 }
 
-final class MockSignInInteractor: SignInInteractorProtocol {
-
-    var permissionURLResult: Result<URL, Error>?
-    func getAuthPermissionURL(completion: @escaping (Result<URL, Error>) -> Void) {
-        if let permissionURLResult {
-            completion(permissionURLResult)
-        }
-    }
-
-    var signInUserResult: Result<User, Error>?
-    func signInUser(completion: @escaping (Result<User, Error>) -> Void) {
-        if let signInUserResult {
-            completion(signInUserResult)
-        }
-    }
-
-}
-
 final class MockSignInViewModel: SignInViewModelProtocol {
 
     var startLoading: AnyBehaviorBindable<Bool> = BehaviorBindable(false).eraseToAnyBindable()

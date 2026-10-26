@@ -10,28 +10,45 @@ import Foundation
 @testable import UpcomingMovies
 import UpcomingMoviesDomain
 
-final class SearchOptionsInteractorMock: SearchOptionsInteractorProtocol {
+final class SearchMoviesUseCaseMock: MovieSearchUseCaseProtocol {
+
+    var didUpdateMovieSearch: (() -> Void)?
+
+    var movieSearchesResult: Result<[MovieSearch], Error>?
+    private(set) var getMovieSearchesCallCount = 0
+
+    func getMovieSearches(completion: @escaping (Result<[MovieSearch], Error>) -> Void) {
+        if let movieSearchesResult {
+            completion(movieSearchesResult)
+        }
+        getMovieSearchesCallCount += 1
+    }
+
+    private(set) var saveSearchTextCallCount = 0
+
+    func save(with searchText: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        completion(.success(()))
+        saveSearchTextCallCount += 1
+    }
+}
+
+final class SearchMovieVisitsUseCaseMock: MovieVisitUseCaseProtocol {
 
     var didUpdateMovieVisit: (() -> Void)?
 
-    var getGenresResult: Result<[GenreProtocol], Error>?
-    private(set) var getGenresCallCount = 0
-    func getGenres(completion: @escaping (Result<[GenreProtocol], Error>) -> Void) {
-        if let getGenresResult = getGenresResult {
-            completion(getGenresResult)
-        }
-        getGenresCallCount += 1
-    }
-
-    var getMovieVisitsResult: Result<[MovieVisitProtocol], Error>?
+    var movieVisitsResult: Result<[MovieVisit], Error>?
     private(set) var getMovieVisitsCallCount = 0
-    func getMovieVisits(completion: @escaping (Result<[MovieVisitProtocol], Error>) -> Void) {
-        if let getMovieVisitsResult = getMovieVisitsResult {
-            completion(getMovieVisitsResult)
+
+    func getMovieVisits(completion: @escaping (Result<[MovieVisit], Error>) -> Void) {
+        if let movieVisitsResult {
+            completion(movieVisitsResult)
         }
         getMovieVisitsCallCount += 1
     }
 
+    func save(with id: Int, title: String, posterPath: String?, completion: @escaping (Result<Void, Error>) -> Void) {
+        completion(.success(()))
+    }
 }
 
 final class MockSearchMoviesResultControllerDelegate: MockViewController, SearchMoviesResultControllerDelegate {
@@ -43,36 +60,36 @@ final class MockSearchMoviesResultControllerDelegate: MockViewController, Search
 
 }
 
-final class MockSearchMoviesResultInteractor: SearchMoviesResultInteractorProtocol {
-    var didUpdateMovieSearches: (() -> Void)?
+final class SearchMoviesFeatureTestDependencies {
 
-    var searchMoviesResult: Result<[MovieProtocol], Error>?
-    private(set) var searchMoviesCallCount = 0
-    func searchMovies(searchText: String, page: Int?, completion: @escaping (Result<[MovieProtocol], Error>) -> Void) {
-        if let searchMoviesResult = searchMoviesResult {
-            completion(searchMoviesResult)
-        }
-        searchMoviesCallCount += 1
+    let movieUseCase = MovieUseCaseProtocolMock()
+    let movieSearchUseCase = SearchMoviesUseCaseMock()
+    let movieVisitUseCase = SearchMovieVisitsUseCaseMock()
+    let genreUseCase = GenreUseCaseProtocolMock()
+
+    func makeFeature() -> SearchMoviesFeature {
+        SearchMoviesFeature(
+            movieUseCase: movieUseCase,
+            movieSearchUseCase: movieSearchUseCase,
+            movieVisitUseCase: movieVisitUseCase,
+            genreUseCase: genreUseCase,
+            authenticationHandler: SearchAuthenticationHandlerMock()
+        )
+    }
+}
+
+final class SearchAuthenticationHandlerMock: AuthenticationHandlerProtocol {
+
+    func currentUser() -> UserProtocol? {
+        nil
     }
 
-    var getMovieSearchesResult: Result<[MovieSearchProtocol], Error>?
-    private(set) var getMovieSearchesCallCount = 0
-    func getMovieSearches(limit: Int?, completion: @escaping (Result<[MovieSearchProtocol], Error>) -> Void) {
-        if let getMovieSearchesResult = getMovieSearchesResult {
-            completion(getMovieSearchesResult)
-        }
-        getMovieSearchesCallCount += 1
+    func isUserSignedIn() -> Bool {
+        false
     }
 
-    var saveSearchTextResult: Result<Void, Error>?
-    private(set) var saveSearchTextCallCount = 0
-    func saveSearchText(_ searchText: String, completion: ((Result<Void, Error>) -> Void)?) {
-        if let saveSearchTextResult = saveSearchTextResult {
-            completion?(saveSearchTextResult)
-        }
-        saveSearchTextCallCount += 1
+    func deleteCurrentUser() {
     }
-
 }
 
 final class MockSearchOptionsViewModel: SearchOptionsViewModelProtocol {
@@ -96,13 +113,15 @@ final class MockSearchOptionsViewModel: SearchOptionsViewModelProtocol {
     var defaultSearchOptionsCells: [DefaultSearchOptionCellViewModelProtocol] = []
 
     private(set) var loadGenresCallCount = 0
-    func loadGenres() {
+    func loadGenres() -> Task<Void, Never> {
         loadGenresCallCount += 1
+        return Task {}
     }
 
     private(set) var loadVisitedMoviesCallCount = 0
-    func loadVisitedMovies() {
+    func loadVisitedMovies() -> Task<Void, Never> {
         loadVisitedMoviesCallCount += 1
+        return Task {}
     }
 
     var sectionAtIndexResult: SearchOptionsSection = .defaultSearches

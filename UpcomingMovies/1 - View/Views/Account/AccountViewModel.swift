@@ -10,7 +10,7 @@ import Foundation
 
 final class AccountViewModel: AccountViewModelProtocol {
 
-    private let interactor: AccountInteractorProtocol
+    private let accountFeature: AccountFeature
 
     let showAuthPermission = PublishBindable<URL>().eraseToAnyBindable()
     let didUpdateAuthenticationState = BehaviorBindable<AuthenticationState?>(nil).eraseToAnyBindable()
@@ -22,8 +22,8 @@ final class AccountViewModel: AccountViewModelProtocol {
 
     // MARK: - Initializers
 
-    init(interactor: AccountInteractorProtocol) {
-        self.interactor = interactor
+    init(accountFeature: AccountFeature) {
+        self.accountFeature = accountFeature
 
         didUpdateAuthenticationState.value = isUserSignedIn() ? .currentlySignedIn : .currentlySignedOut
     }
@@ -35,7 +35,7 @@ final class AccountViewModel: AccountViewModelProtocol {
     }
 
     func currentUser() -> UserProtocol? {
-        interactor.currentUser()
+        accountFeature.currentUser()
     }
 
 }

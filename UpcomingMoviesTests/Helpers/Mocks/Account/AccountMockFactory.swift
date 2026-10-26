@@ -9,34 +9,19 @@
 import Foundation
 @testable import UpcomingMovies
 
-final class MockAccountInteractor: AccountInteractorProtocol {
-
-    var permissionURLResult: Result<URL, Error>?
-    func getAuthPermissionURL(completion: @escaping (Result<URL, Error>) -> Void) {
-        if let permissionURLResult {
-            completion(permissionURLResult)
-        }
-    }
-
-    var signInUserResult: Result<UserProtocol, Error>?
-    func signInUser(completion: @escaping (Result<UserProtocol, Error>) -> Void) {
-        if let signInUserResult {
-            completion(signInUserResult)
-        }
-    }
-
-    var signOutUserResult: Result<Bool, Error>?
-    func signOutUser(completion: @escaping (Result<Bool, Error>) -> Void) {
-        if let signOutUserResult {
-            completion(signOutUserResult)
-        }
-    }
+final class MockAccountAuthenticationHandler: AuthenticationHandlerProtocol {
 
     var currentUserResult: UserProtocol?
     func currentUser() -> UserProtocol? {
         currentUserResult
     }
 
-    func signOutUser() {}
+    func isUserSignedIn() -> Bool {
+        currentUserResult != nil
+    }
+
+    func deleteCurrentUser() {
+        currentUserResult = nil
+    }
 
 }

@@ -16,24 +16,24 @@ final class ProfileAssembly: Assembly {
             ProfileFactory()
         }
 
-        container.register(ProfileInteractorProtocol.self) { resolver in
+        container.register(ProfileFeature.self) { resolver in
             guard let useCaseProvider = resolver.resolve(UseCaseProviderProtocol.self) else {
                 fatalError("UseCaseProviderProtocol dependency could not be resolved")
             }
-            return ProfileInteractor(userUseCase: useCaseProvider.userUseCase(),
+            return ProfileFeature(userUseCase: useCaseProvider.userUseCase(),
                                      authUseCase: useCaseProvider.authUseCase(),
                                      accountUseCase: useCaseProvider.accountUseCase())
         }
 
         container.register(ProfileViewModelProtocol.self) { (resolver, user: UserProtocol) in
-            guard let interactor = resolver.resolve(ProfileInteractorProtocol.self) else {
-                fatalError("ProfileInteractorProtocol dependency could not be resolved")
+            guard let profileFeature = resolver.resolve(ProfileFeature.self) else {
+                fatalError("ProfileFeature dependency could not be resolved")
             }
             guard let factory = resolver.resolve(ProfileFactoryProtocol.self) else {
                 fatalError("ProfileFactoryProtocol dependency could not be resolved")
             }
             return ProfileViewModel(userAccount: user,
-                                    interactor: interactor,
+                                    profileFeature: profileFeature,
                                     factory: factory)
         }
     }

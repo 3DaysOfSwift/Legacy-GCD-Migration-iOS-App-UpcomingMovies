@@ -34,24 +34,14 @@ protocol SearchMoviesResultViewModelProtocol {
     var emptySearchResultsTitle: String { get }
     var recentSearchesTitle: String { get }
 
-    func loadRecentSearches()
+    @discardableResult
+    func loadRecentSearches() -> Task<Void, Never>
 
-    func searchMovies(withSearchText searchText: String)
+    @discardableResult
+    func searchMovies(withSearchText searchText: String) -> Task<Void, Never>
     func searchedMovie(at index: Int) -> MovieProtocol
 
     func clearMovies()
-
-}
-
-protocol SearchMoviesResultInteractorProtocol {
-
-    var didUpdateMovieSearches: (() -> Void)? { get set }
-
-    func searchMovies(searchText: String, page: Int?, completion: @escaping (Result<[MovieProtocol], Error>) -> Void)
-
-    func getMovieSearches(limit: Int?,
-                          completion: @escaping (Result<[MovieSearchProtocol], Error>) -> Void)
-    func saveSearchText(_ searchText: String, completion: ((Result<Void, Error>) -> Void)?)
 
 }
 
@@ -72,8 +62,10 @@ protocol SearchOptionsViewModelProtocol {
 
     var defaultSearchOptionsCells: [DefaultSearchOptionCellViewModelProtocol] { get }
 
-    func loadGenres()
-    func loadVisitedMovies()
+    @discardableResult
+    func loadGenres() -> Task<Void, Never>
+    @discardableResult
+    func loadVisitedMovies() -> Task<Void, Never>
 
     func section(at index: Int) -> SearchOptionsSection
     func sectionIndex(for section: SearchOptionsSection) -> Int?
@@ -83,15 +75,6 @@ protocol SearchOptionsViewModelProtocol {
     func getDefaultSearchSelection(by index: Int)
     func getMovieGenreSelection(by index: Int)
     func getRecentlyVisitedMovieSelection(by index: Int)
-
-}
-
-protocol SearchOptionsInteractorProtocol {
-
-    var didUpdateMovieVisit: (() -> Void)? { get set }
-
-    func getGenres(completion: @escaping (Result<[GenreProtocol], Error>) -> Void)
-    func getMovieVisits(completion: @escaping (Result<[MovieVisitProtocol], Error>) -> Void)
 
 }
 

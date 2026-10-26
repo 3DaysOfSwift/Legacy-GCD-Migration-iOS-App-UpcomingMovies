@@ -8,11 +8,14 @@
 
 import UpcomingMoviesDomain
 
+@MainActor
 final class SearchOptionsViewModel: SearchOptionsViewModelProtocol {
 
     // MARK: - Dependencies
 
-    private var interactor: SearchOptionsInteractorProtocol
+    private let searchMoviesFeature: SearchMoviesFeature
+    private var genresTask: Task<Void, Never>?
+    private var movieVisitsTask: Task<Void, Never>?
 
     // MARK: - Reactive properties
 
@@ -47,41 +50,61 @@ final class SearchOptionsViewModel: SearchOptionsViewModelProtocol {
 
     // MARK: - Initializers
 
-    init(interactor: SearchOptionsInteractorProtocol) {
-        self.interactor = interactor
+    init(searchMoviesFeature: SearchMoviesFeature) {
+        self.searchMoviesFeature = searchMoviesFeature
 
-        self.interactor.didUpdateMovieVisit = { [weak self] in
-            guard let self = self else { return }
-            self.loadVisitedMovies()
+        self.searchMoviesFeature.movieVisitsDidChange = { [weak self] in
+            self?.loadVisitedMovies()
         }
     }
 
     // MARK: - SearchOptionsViewModelProtocol
 
-    func loadGenres() {
-        interactor.getGenres(completion: { [weak self] result in
-            guard let self = self else { return }
-            guard let genres = result.wrappedValue else { return }
-            self.genres = genres
-            self.needsContentReload.send()
-        })
-    }
+    func loadGenres() -> Task<Void, Never> {
+        if let genresTask {
+            return genresTask
+        }
 
-    func loadVisitedMovies() {
-        interactor.getMovieVisits { [weak self] result in
-            guard let self = self else { return }
-            guard let movieVisits = result.wrappedValue else { return }
+        let loadTask = Task { [weak self] in
+            guard let self else { return }
+            defer { self.genresTask = nil }
 
-            self.movieVisits = movieVisits
-            let viewStateChanged = self.configureViewState(movieVisits: movieVisits)
-            // If the state changed we reload the entire table view
-            if viewStateChanged {
-                self.needsContentReload.send()
-            } else {
-                guard let index = self.sectionIndex(for: .recentlyVisited) else { return }
-                self.updateVisitedMovies.send(index)
+            do {
+                genres = try await searchMoviesFeature.loadGenres()
+                needsContentReload.send()
+            } catch {
+                // The existing screen remains usable when genres cannot refresh.
             }
         }
+
+        genresTask = loadTask
+        return loadTask
+    }
+
+    func loadVisitedMovies() -> Task<Void, Never> {
+        if let movieVisitsTask {
+            return movieVisitsTask
+        }
+
+        let loadTask = Task { [weak self] in
+            guard let self else { return }
+            defer { self.movieVisitsTask = nil }
+
+            do {
+                movieVisits = try await searchMoviesFeature.loadMovieVisits()
+                let viewStateChanged = configureViewState(movieVisits: movieVisits)
+                if viewStateChanged {
+                    needsContentReload.send()
+                } else if let index = sectionIndex(for: .recentlyVisited) {
+                    updateVisitedMovies.send(index)
+                }
+            } catch {
+                // The existing screen keeps its current visit history on failure.
+            }
+        }
+
+        movieVisitsTask = loadTask
+        return loadTask
     }
 
     func section(at index: Int) -> SearchOptionsSection {

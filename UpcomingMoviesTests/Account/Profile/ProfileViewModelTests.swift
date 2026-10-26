@@ -8,27 +8,38 @@
 
 import XCTest
 @testable import UpcomingMovies
+@testable import UpcomingMoviesDomain
 
+@MainActor
 final class ProfileViewModelTests: XCTestCase {
 
-    private var mockInteractor: MockProfileInteractor!
+    private var profileFeature: ProfileFeature!
+    private var mockUserUseCase: UserUseCaseProtocolMock!
+    private var mockAuthUseCase: AuthUseCaseProtocolMock!
+    private var mockAccountUseCase: AccountUseCaseProtocolMock!
     private var mockFactory: MockProfileViewFactory!
     private var viewModelToTest: ProfileViewModelProtocol!
 
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        mockInteractor = MockProfileInteractor()
+    override func setUp() {
+        super.setUp()
+        mockUserUseCase = UserUseCaseProtocolMock()
+        mockAuthUseCase = AuthUseCaseProtocolMock()
+        mockAccountUseCase = AccountUseCaseProtocolMock()
+        profileFeature = ProfileFeature(userUseCase: mockUserUseCase, authUseCase: mockAuthUseCase, accountUseCase: mockAccountUseCase)
         mockFactory = MockProfileViewFactory()
         viewModelToTest = ProfileViewModel(userAccount: MockUserProtocol(),
-                                           interactor: mockInteractor,
+                                           profileFeature: profileFeature,
                                            factory: mockFactory)
     }
 
-    override func tearDownWithError() throws {
-        mockInteractor = nil
+    override func tearDown() {
+        profileFeature = nil
+        mockUserUseCase = nil
+        mockAuthUseCase = nil
+        mockAccountUseCase = nil
         mockFactory = nil
         viewModelToTest = nil
-        try super.tearDownWithError()
+        super.tearDown()
     }
 
     func testGetAccountDetailSuccessInfoReloaded() {
@@ -36,7 +47,7 @@ final class ProfileViewModelTests: XCTestCase {
         let currentUser = MockUserProtocol()
         currentUser.hasUpdatedInfoResult = true
         viewModelToTest = ProfileViewModel(userAccount: currentUser,
-                                           interactor: mockInteractor,
+                                           profileFeature: profileFeature,
                                            factory: mockFactory)
 
         let userToTest = MockUserProtocol(name: "Alonso")
@@ -45,7 +56,7 @@ final class ProfileViewModelTests: XCTestCase {
         viewModelToTest.reloadAccountInfo.bind { _ in
             expectation.fulfill()
         }
-        mockInteractor.getAccountDetailResult = .success(userToTest)
+        mockAccountUseCase.getAccountDetailResult = .success(userToTest)
         viewModelToTest.getAccountDetails()
         // Assert
         wait(for: [expectation], timeout: 1.0)
@@ -61,7 +72,7 @@ final class ProfileViewModelTests: XCTestCase {
             expectation.fulfill()
         }
 
-        mockInteractor.getAccountDetailResult = .success(userToTest)
+        mockAccountUseCase.getAccountDetailResult = .success(userToTest)
         viewModelToTest.getAccountDetails()
         // Assert
         wait(for: [expectation], timeout: 1.0)
@@ -77,7 +88,7 @@ final class ProfileViewModelTests: XCTestCase {
             expectation.fulfill()
         }
 
-        mockInteractor.getAccountDetailResult = Result.failure(errorToTest)
+        mockAccountUseCase.getAccountDetailResult = Result.failure(errorToTest)
         viewModelToTest.getAccountDetails()
         // Assert
         wait(for: [expectation], timeout: 1.0)
@@ -136,7 +147,7 @@ final class ProfileViewModelTests: XCTestCase {
             XCTAssertEqual(state, .justSignedOut)
             expectation.fulfill()
         }
-        mockInteractor.signOutUserResult = Result.success(true)
+        mockAuthUseCase.signOutUserResult = Result.success(true)
         viewModelToTest.signOutCurrentUser()
         // Assert
         wait(for: [expectation], timeout: 1.0)
@@ -150,7 +161,7 @@ final class ProfileViewModelTests: XCTestCase {
         viewModelToTest.didReceiveError.bind {
             expectation.fulfill()
         }
-        mockInteractor.signOutUserResult = Result.failure(errorToTest)
+        mockAuthUseCase.signOutUserResult = Result.failure(errorToTest)
         viewModelToTest.signOutCurrentUser()
         // Assert
         wait(for: [expectation], timeout: 1.0)

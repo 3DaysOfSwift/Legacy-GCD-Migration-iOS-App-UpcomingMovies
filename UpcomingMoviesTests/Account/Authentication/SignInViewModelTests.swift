@@ -10,21 +10,28 @@ import XCTest
 @testable import UpcomingMovies
 import UpcomingMoviesDomain
 
+@MainActor
 final class SignInViewModelTests: XCTestCase {
 
-    private var mockInteractor: MockSignInInteractor!
+    private var signInFeature: SignInFeature!
+    private var mockUserUseCase: UserUseCaseProtocolMock!
+    private var mockAuthUseCase: AuthUseCaseProtocolMock!
     private var viewModelToTest: SignInViewModelProtocol!
 
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        mockInteractor = MockSignInInteractor()
-        viewModelToTest = SignInViewModel(interactor: mockInteractor)
+    override func setUp() {
+        super.setUp()
+        mockUserUseCase = UserUseCaseProtocolMock()
+        mockAuthUseCase = AuthUseCaseProtocolMock()
+        signInFeature = SignInFeature(authUseCase: mockAuthUseCase, userUseCase: mockUserUseCase)
+        viewModelToTest = SignInViewModel(signInFeature: signInFeature)
     }
 
-    override func tearDownWithError() throws {
-        mockInteractor = nil
+    override func tearDown() {
         viewModelToTest = nil
-        try super.tearDownWithError()
+        signInFeature = nil
+        mockUserUseCase = nil
+        mockAuthUseCase = nil
+        super.tearDown()
     }
 
     func testAuthorizationProcessSuccess() {
@@ -36,7 +43,7 @@ final class SignInViewModelTests: XCTestCase {
             XCTAssertNotNil(url)
             expectation.fulfill()
         }
-        mockInteractor.permissionURLResult = Result.success(permissionURLToTest)
+        mockAuthUseCase.getAuthURLResult = Result.success(permissionURLToTest)
         viewModelToTest.startAuthorizationProcess()
         // Assert
         wait(for: [expectation], timeout: 1.0)
@@ -50,7 +57,7 @@ final class SignInViewModelTests: XCTestCase {
         viewModelToTest.didReceiveError.bind {
             expectation.fulfill()
         }
-        mockInteractor.permissionURLResult = Result.failure(errorToTest)
+        mockAuthUseCase.getAuthURLResult = Result.failure(errorToTest)
         viewModelToTest.startAuthorizationProcess()
         // Assert
         wait(for: [expectation], timeout: 1.0)
@@ -65,7 +72,7 @@ final class SignInViewModelTests: XCTestCase {
             XCTAssertEqual(state, .justSignedIn)
             expectation.fulfill()
         }
-        mockInteractor.signInUserResult = Result.success(userToTest)
+        mockAuthUseCase.signInUserResult = Result.success(userToTest)
         viewModelToTest.signInUser()
         // Assert
         wait(for: [expectation], timeout: 1.0)
@@ -79,7 +86,7 @@ final class SignInViewModelTests: XCTestCase {
         viewModelToTest.didReceiveError.bind {
             expectation.fulfill()
         }
-        mockInteractor.signInUserResult = Result.failure(errorToTest)
+        mockAuthUseCase.signInUserResult = Result.failure(errorToTest)
         viewModelToTest.signInUser()
         // Assert
         wait(for: [expectation], timeout: 1.0)

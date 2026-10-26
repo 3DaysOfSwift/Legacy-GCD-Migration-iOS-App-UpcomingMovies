@@ -8,13 +8,16 @@
 
 import Foundation
 
+@MainActor
 final class ProfileViewModel: ProfileViewModelProtocol {
 
     // MARK: - Stored properties
 
     private var userAccount: UserProtocol
-    private let interactor: ProfileInteractorProtocol
+    private let profileFeature: ProfileFeature
     private let factory: ProfileFactoryProtocol
+    private var accountDetailsTask: Task<Void, Never>?
+    private var signOutTask: Task<Void, Never>?
 
     let reloadAccountInfo = PublishBindable<Void>().eraseToAnyBindable()
     let didUpdateAuthenticationState = BehaviorBindable<AuthenticationState?>(nil).eraseToAnyBindable()
@@ -37,10 +40,10 @@ final class ProfileViewModel: ProfileViewModelProtocol {
     // MARK: - Initializers
 
     init(userAccount: UserProtocol,
-         interactor: ProfileInteractorProtocol,
+         profileFeature: ProfileFeature,
          factory: ProfileFactoryProtocol) {
         self.userAccount = userAccount
-        self.interactor = interactor
+        self.profileFeature = profileFeature
         self.factory = factory
     }
 
@@ -81,8 +84,11 @@ final class ProfileViewModel: ProfileViewModelProtocol {
     // MARK: - Networking
 
     func getAccountDetails() {
-        interactor.getAccountDetail { result in
-            guard let user = result.wrappedValue else { return }
+        guard accountDetailsTask == nil else { return }
+        accountDetailsTask = Task { [weak self] in
+            guard let self else { return }
+            defer { self.accountDetailsTask = nil }
+            guard let user = try? await self.profileFeature.loadAccountDetail() else { return }
 
             // If there is no update to display we don't reload user account info
             if self.userAccount.hasUpdatedInfo(user) {
@@ -93,11 +99,14 @@ final class ProfileViewModel: ProfileViewModelProtocol {
     }
 
     func signOutCurrentUser() {
-        interactor.signOutUser { result in
-            switch result {
-            case .success:
+        guard signOutTask == nil else { return }
+        signOutTask = Task { [weak self] in
+            guard let self else { return }
+            defer { self.signOutTask = nil }
+            do {
+                _ = try await self.profileFeature.signOut()
                 self.didUpdateAuthenticationState.value = .justSignedOut
-            case .failure:
+            } catch {
                 self.didReceiveError.send()
             }
         }

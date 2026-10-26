@@ -21,12 +21,6 @@ protocol AccountViewModelProtocol {
 
 }
 
-protocol AccountInteractorProtocol {
-
-    func currentUser() -> UserProtocol?
-
-}
-
 protocol AccountCoordinatorProtocol: AnyObject {
 
     func embedSignInViewController(on parentViewController: SignInViewControllerDelegate)

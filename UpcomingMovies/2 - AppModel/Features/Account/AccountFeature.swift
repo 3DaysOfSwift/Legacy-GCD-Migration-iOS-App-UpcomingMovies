@@ -1,5 +1,5 @@
 //
-//  AccountInteractor.swift
+//  AccountFeature.swift
 //  UpcomingMovies
 //
 //  Created by Alonso on 7/11/20.
@@ -8,7 +8,8 @@
 
 import Foundation
 
-final class AccountInteractor: AccountInteractorProtocol {
+/// Owns the account tab's current-user capability.
+final class AccountFeature {
 
     private let authHandler: AuthenticationHandlerProtocol
 

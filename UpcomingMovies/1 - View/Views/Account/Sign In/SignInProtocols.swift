@@ -23,13 +23,6 @@ protocol SignInViewModelProtocol {
 
 }
 
-protocol SignInInteractorProtocol {
-
-    func getAuthPermissionURL(completion: @escaping (Result<URL, Error>) -> Void)
-    func signInUser(completion: @escaping (Result<User, Error>) -> Void)
-
-}
-
 protocol SignInCoordinatorProtocol: AnyObject {
 
     func showAuthPermission(for authPermissionURL: URL,

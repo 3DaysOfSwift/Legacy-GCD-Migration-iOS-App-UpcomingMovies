@@ -12,17 +12,17 @@ import XCTest
 
 final class AccountViewModelTests: XCTestCase {
 
-    private var mockInteractor: MockAccountInteractor!
+    private var authenticationHandler: MockAccountAuthenticationHandler!
     private var viewModelToTest: AccountViewModelProtocol!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
-        mockInteractor = MockAccountInteractor()
-        viewModelToTest = AccountViewModel(interactor: mockInteractor)
+        authenticationHandler = MockAccountAuthenticationHandler()
+        viewModelToTest = AccountViewModel(accountFeature: AccountFeature(authHandler: authenticationHandler))
     }
 
     override func tearDownWithError() throws {
-        mockInteractor = nil
+        authenticationHandler = nil
         viewModelToTest = nil
         try super.tearDownWithError()
     }
@@ -45,7 +45,7 @@ final class AccountViewModelTests: XCTestCase {
         // Arrange
         let userToTest = MockUserProtocol()
         // Act
-        mockInteractor.currentUserResult = userToTest
+        authenticationHandler.currentUserResult = userToTest
         let user = viewModelToTest.currentUser()
         // Assert
         XCTAssertNotNil(user)
@@ -55,7 +55,7 @@ final class AccountViewModelTests: XCTestCase {
         // Arrange
         let userToTest: UserProtocol? = nil
         // Act
-        mockInteractor.currentUserResult = userToTest
+        authenticationHandler.currentUserResult = userToTest
         let user = viewModelToTest.currentUser()
         // Assert
         XCTAssertNil(user)
@@ -65,7 +65,7 @@ final class AccountViewModelTests: XCTestCase {
         // Arrange
         let userToTest = MockUserProtocol()
         // Act
-        mockInteractor.currentUserResult = userToTest
+        authenticationHandler.currentUserResult = userToTest
         let isUserSignedIn = viewModelToTest.isUserSignedIn()
         // Assert
         XCTAssertTrue(isUserSignedIn)
@@ -75,7 +75,7 @@ final class AccountViewModelTests: XCTestCase {
         // Arrange
         let userToTest: UserProtocol? = nil
         // Act
-        mockInteractor.currentUserResult = userToTest
+        authenticationHandler.currentUserResult = userToTest
         let isUserSignedIn = viewModelToTest.isUserSignedIn()
         // Assert
         XCTAssertFalse(isUserSignedIn)

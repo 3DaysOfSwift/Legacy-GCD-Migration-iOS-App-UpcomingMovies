@@ -8,9 +8,12 @@
 
 import Foundation
 
+@MainActor
 final class SignInViewModel: SignInViewModelProtocol {
 
-    private let interactor: SignInInteractorProtocol
+    private let signInFeature: SignInFeature
+    private var authorizationTask: Task<Void, Never>?
+    private var userSignInTask: Task<Void, Never>?
 
     let startLoading = BehaviorBindable(false).eraseToAnyBindable()
     let showAuthPermission = PublishBindable<URL>().eraseToAnyBindable()
@@ -21,30 +24,54 @@ final class SignInViewModel: SignInViewModelProtocol {
         LocalizedStrings.signIn()
     }
 
-    init(interactor: SignInInteractorProtocol) {
-        self.interactor = interactor
+    init(signInFeature: SignInFeature) {
+        self.signInFeature = signInFeature
     }
 
     // MARK: - SignInViewModelProtocol
 
     func startAuthorizationProcess() {
+        guard authorizationTask == nil else {
+            return
+        }
+
         startLoading.value = true
-        interactor.getAuthPermissionURL { result in
-            switch result {
-            case .success(let url):
+        authorizationTask = Task { [weak self] in
+            guard let self else {
+                return
+            }
+
+            defer {
+                self.authorizationTask = nil
+            }
+
+            do {
+                let url = try await self.signInFeature.authorizationURL()
                 self.showAuthPermission.send(url)
-            case .failure:
+            } catch {
                 self.didReceiveError.send()
             }
         }
     }
 
     func signInUser() {
-        interactor.signInUser { result in
-            switch result {
-            case .success:
+        guard userSignInTask == nil else {
+            return
+        }
+
+        userSignInTask = Task { [weak self] in
+            guard let self else {
+                return
+            }
+
+            defer {
+                self.userSignInTask = nil
+            }
+
+            do {
+                _ = try await self.signInFeature.signIn()
                 self.didUpdateAuthenticationState.value = .justSignedIn
-            case .failure:
+            } catch {
                 self.didReceiveError.send()
             }
         }

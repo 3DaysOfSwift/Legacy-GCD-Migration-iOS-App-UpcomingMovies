@@ -12,18 +12,18 @@ import UpcomingMoviesDomain
 final class SignInAssembly: Assembly {
 
     func assemble(container: Container) {
-        container.register(SignInInteractorProtocol.self) { resolver in
+        container.register(SignInFeature.self) { resolver in
             guard let useCaseProvider = resolver.resolve(UseCaseProviderProtocol.self) else {
                 fatalError("UseCaseProviderProtocol dependency could not be resolved")
             }
-            return SignInInteractor(authUseCase: useCaseProvider.authUseCase(), userUseCase: useCaseProvider.userUseCase())
+            return SignInFeature(authUseCase: useCaseProvider.authUseCase(), userUseCase: useCaseProvider.userUseCase())
         }
 
         container.register(SignInViewModelProtocol.self) { resolver in
-            guard let interactor = resolver.resolve(SignInInteractorProtocol.self) else {
-                fatalError("SignInInteractorProtocol dependency could not be resolved")
+            guard let signInFeature = resolver.resolve(SignInFeature.self) else {
+                fatalError("SignInFeature dependency could not be resolved")
             }
-            return SignInViewModel(interactor: interactor)
+            return SignInViewModel(signInFeature: signInFeature)
         }
     }
 

@@ -27,12 +27,20 @@ UpcomingMovies
 │       └── Upcoming Movies
 │           ├── UIKit controller, view model, navigation and presentation files
 │           └── Cells
+│       ├── Search
+│       └── Account
 ├── 2 - AppModel
 │   ├── Features
-│   │   └── Upcoming Movies
-│   │       └── UpcomingMoviesFeature.swift
+│   │   ├── Upcoming Movies
+│   │   │   └── UpcomingMoviesFeature.swift
+│   │   └── Search
+│   │       └── SearchMoviesFeature.swift
+│   │   └── Account
+│   │       └── AccountFeature.swift
 │   └── Legacy Dependency Composition
-│       └── UpcomingMoviesAssembly.swift
+│       ├── UpcomingMoviesAssembly.swift
+│       ├── SearchMoviesAssembly.swift
+│       └── AccountAssembly.swift
 ├── Legacy UIKit Routes
 │   ├── Search
 │   ├── Account
@@ -106,9 +114,64 @@ inventory. Before any completion claim, each in-scope primitive must record its
 owner, ordering/lifetime/error guarantee, replacement or retention decision,
 and verification evidence.
 
+## Search route checkpoint — in progress
+
+- Completed: the entire Search UIKit presentation route, including its embedded
+  search-options and search-results screens, now appears at
+  `UpcomingMovies/1 - View/Views/Search` in Xcode.
+- Completed: `SearchMoviesFeature` now appears at
+  `UpcomingMovies/2 - AppModel/Features/Search`. It owns callback-to-async
+  conversion for movie searches, recent searches, genres and visited movies.
+  Equivalent in-flight reads share one task. Distinct search-history writes run
+  sequentially, preserving their input order.
+- Completed: `SearchMoviesResultViewModel` and `SearchOptionsViewModel` retain
+  their own task handles and publish the same existing UIKit bindable states.
+  The controllers, layout, navigation and user-visible copy are unchanged.
+- Completed: the obsolete Search interactor protocols and test doubles were
+  removed. Search tests now construct `SearchMoviesFeature` with lower-level
+  use-case test doubles, matching the production dependency boundary.
+- Verified so far: source parsing, Xcode project plist validation and a
+  whitespace review. A full typecheck/build/test run and manual Search
+  regression remain required before this checkpoint can be accepted.
+
 ## Completion language
 
 Use **“Continuing migration: <next checkpoint>”** until the CFA completion gate
 has evidence for the final navigator map, every tab-owner mapping, primitive
 inventory, post-change build/tests and manual architecture review. A build,
 source parse or one converted callback does not justify “migration complete.”
+
+## Account root checkpoint — in progress
+
+- Completed: the Account tab's root UIKit controller, view model, coordinator
+  and presentation protocol now appear at
+  `UpcomingMovies/1 - View/Views/Account` in Xcode.
+- Completed: `AccountFeature` now appears at
+  `UpcomingMovies/2 - AppModel/Features/Account`. It owns the current-user
+  capability directly through `AuthenticationHandlerProtocol`; the obsolete
+  Account interactor boundary has been removed.
+- Completed: its transitional Swinject registration now lives at
+  `UpcomingMovies/2 - AppModel/Legacy Dependency Composition/AccountAssembly.swift`.
+  `AccountFeatureTests` exercises the actual feature boundary.
+- Verified so far: Account source parsing, Xcode project plist validation and
+  a whitespace review. A full typecheck/build/test run and manual Account
+  regression remain required before this checkpoint can be accepted.
+- Remaining Account scope: sign-in, authentication, profile, saved-movie and
+  custom-list routes are separate nested migration slices. They remain in the
+  legacy route area until their ownership and behaviour are migrated visibly.
+
+### Sign-in sub-route checkpoint — in progress
+
+- Completed: Sign In's UIKit controller, coordinator, protocol and view model
+  now appear at `1 - View/Views/Account/Sign In` in Xcode.
+- Completed: `SignInFeature` appears at
+  `2 - AppModel/Features/Account/Sign In`. It owns authorization-URL and
+  sign-in work, shares equivalent in-flight requests, and bridges the legacy
+  completion handlers into `async` operations. The view model retains a task
+  handle for each user action and keeps the established bindable UI state.
+- Completed: the legacy interactor protocol and its test double are removed;
+  `SignInFeatureTests` exercises the real feature boundary. Its Swinject
+  registration is visible in the transitional composition boundary.
+- Verified so far: source parsing, project plist validation, expected source
+  placement and a whitespace review. Build, tests and manual sign-in
+  regression remain required before this sub-route checkpoint can be accepted.

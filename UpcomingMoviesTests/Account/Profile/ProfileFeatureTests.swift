@@ -1,5 +1,5 @@
 //
-//  ProfileInteractorTests.swift
+//  ProfileFeatureTests.swift
 //  UpcomingMoviesTests
 //
 //  Created by Alonso on 12/07/23.
@@ -10,53 +10,48 @@ import XCTest
 @testable import UpcomingMovies
 @testable import UpcomingMoviesDomain
 
-final class ProfileInteractorTests: XCTestCase {
+@MainActor
+final class ProfileFeatureTests: XCTestCase {
 
-    private var interactor: ProfileInteractor!
+    private var profileFeature: ProfileFeature!
     private var mockUserUseCase: UserUseCaseProtocolMock!
     private var mockAuthUseCase: AuthUseCaseProtocolMock!
     private var mockAccountUseCase: AccountUseCaseProtocolMock!
 
-    override func setUpWithError() throws {
-        try super.setUpWithError()
+    override func setUp() {
+        super.setUp()
         mockUserUseCase = UserUseCaseProtocolMock()
         mockAuthUseCase = AuthUseCaseProtocolMock()
         mockAccountUseCase = AccountUseCaseProtocolMock()
-        interactor = ProfileInteractor(userUseCase: mockUserUseCase,
+        profileFeature = ProfileFeature(userUseCase: mockUserUseCase,
                                        authUseCase: mockAuthUseCase,
                                        accountUseCase: mockAccountUseCase)
     }
 
-    override func tearDownWithError() throws {
-        interactor = nil
+    override func tearDown() {
+        profileFeature = nil
         mockUserUseCase = nil
         mockAuthUseCase = nil
         mockAccountUseCase = nil
-        try super.tearDownWithError()
+        super.tearDown()
     }
 
-    func testGetAccountDetailSuccess() {
+    func testLoadAccountDetailSavesTheUser() async throws {
         // Arrange
         mockAccountUseCase.getAccountDetailResult = .success(.with())
-        // Act
-        interactor.getAccountDetail(completion: { _ in })
-        // Assert
+        _ = try await profileFeature.loadAccountDetail()
         XCTAssertEqual(mockUserUseCase.saveUserCallCount, 1)
     }
 
-    func testGetAccountDetailError() {
+    func testLoadAccountDetailDoesNotSaveOnFailure() async {
         // Arrange
         mockAccountUseCase.getAccountDetailResult = .failure(TestError())
-        // Act
-        interactor.getAccountDetail(completion: { _ in })
-        // Assert
+        _ = try? await profileFeature.loadAccountDetail()
         XCTAssertEqual(mockUserUseCase.saveUserCallCount, 0)
     }
 
-    func testSignOutUser() {
-        // Act
-        interactor.signOutUser(completion: { _ in })
-        // Assert
+    func testSignOutRequestsTheUseCase() async {
+        _ = try? await profileFeature.signOut()
         XCTAssertEqual(mockAuthUseCase.signOutUserCallCount, 1)
     }
 

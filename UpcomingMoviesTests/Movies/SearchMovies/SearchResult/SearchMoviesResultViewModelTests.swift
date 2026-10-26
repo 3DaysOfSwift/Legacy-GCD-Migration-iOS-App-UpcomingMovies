@@ -10,23 +10,24 @@ import XCTest
 @testable import UpcomingMovies
 import UpcomingMoviesDomain
 
+@MainActor
 final class SearchMoviesResultViewModelTests: XCTestCase {
 
-    private var mockInteractor: MockSearchMoviesResultInteractor!
+    private var featureDependencies: SearchMoviesFeatureTestDependencies!
 
     override func setUp() {
         super.setUp()
-        mockInteractor = MockSearchMoviesResultInteractor()
+        featureDependencies = SearchMoviesFeatureTestDependencies()
     }
 
     override func tearDown() {
-        mockInteractor = nil
+        featureDependencies = nil
         super.tearDown()
     }
 
     func testEmptySearchResultsTitle() {
         // Arrange
-        let viewModelToTest = SearchMoviesResultViewModel(interactor: mockInteractor)
+        let viewModelToTest = SearchMoviesResultViewModel(searchMoviesFeature: featureDependencies.makeFeature())
         // Act
         let emptySearchResultsTitle = viewModelToTest.emptySearchResultsTitle
         // Assert
@@ -35,7 +36,7 @@ final class SearchMoviesResultViewModelTests: XCTestCase {
 
     func testShareTitle() {
         // Arrange
-        let viewModelToTest = SearchMoviesResultViewModel(interactor: mockInteractor)
+        let viewModelToTest = SearchMoviesResultViewModel(searchMoviesFeature: featureDependencies.makeFeature())
         // Act
         let recentSearchesTitle = viewModelToTest.recentSearchesTitle
         // Assert
