@@ -21,7 +21,7 @@ final class MovieReviewsViewModelTests: XCTestCase {
         super.setUp()
         mockInteractor = MockMovieReviewsInteractor()
         viewModelToTest = MovieReviewsViewModel(movieId: 1, movieTitle: "Movie 1",
-                                                interactor: mockInteractor)
+                                                movieReviewsFeature: mockInteractor)
     }
 
     override func tearDown() {

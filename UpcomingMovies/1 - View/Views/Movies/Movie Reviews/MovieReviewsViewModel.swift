@@ -6,12 +6,14 @@
 //  Copyright © 2019 Alonso. All rights reserved.
 //
 
+@MainActor
 final class MovieReviewsViewModel: MovieReviewsViewModelProtocol, SimpleViewStateProcessable {
 
     // MARK: - Dependencies
 
     private let movieId: Int
-    private let interactor: MovieReviewsInteractorProtocol
+    private let movieReviewsFeature: MovieReviewsFeatureProviding
+    private var loadTask: Task<Void, Never>?
 
     // MARK: - Reactive properties
 
@@ -44,11 +46,11 @@ final class MovieReviewsViewModel: MovieReviewsViewModelProtocol, SimpleViewStat
     // MARK: - Initializers
 
     init(movieId: Int, movieTitle: String,
-         interactor: MovieReviewsInteractorProtocol) {
+         movieReviewsFeature: MovieReviewsFeatureProviding) {
         self.movieId = movieId
         self.movieTitle = movieTitle
 
-        self.interactor = interactor
+        self.movieReviewsFeature = movieReviewsFeature
     }
 
     // MARK: - MovieReviewsViewModelProtocol
@@ -69,18 +71,21 @@ final class MovieReviewsViewModel: MovieReviewsViewModelProtocol, SimpleViewStat
     // MARK: - Private
 
     private func fetchMovieReviews(currentPage: Int, showLoader: Bool = false) {
+        guard loadTask == nil else { return }
         startLoading.value = showLoader
-        interactor.getMovieReviews(for: movieId, page: currentPage, completion: { result in
+        loadTask = Task { [weak self] in
+            guard let self else { return }
+            defer { self.loadTask = nil }
             self.startLoading.value = false
-            switch result {
-            case .success(let reviews):
+            do {
+                let reviews = try await self.movieReviewsFeature.loadReviews(forMovieWithID: self.movieId, page: currentPage)
                 self.viewState.value = self.processResult(reviews,
                                                           currentPage: currentPage,
                                                           currentEntities: self.reviews)
-            case .failure(let error):
+            } catch {
                 self.viewState.value = .error(error)
             }
-        })
+        }
     }
 
 }

@@ -9,13 +9,11 @@
 @testable import UpcomingMovies
 import UpcomingMoviesDomain
 
-final class MockMovieReviewsInteractor: MovieReviewsInteractorProtocol {
+final class MockMovieReviewsInteractor: MovieReviewsFeatureProviding {
 
     var getMovieReviewsResult: Result<[ReviewProtocol], Error>?
-    func getMovieReviews(for movieId: Int, page: Int?, completion: @escaping (Result<[ReviewProtocol], Error>) -> Void) {
-        if let getMovieReviewsResult {
-            completion(getMovieReviewsResult)
-        }
+    func loadReviews(forMovieWithID movieID: Int, page: Int?) async throws -> [ReviewProtocol] {
+        try getMovieReviewsResult?.get() ?? []
     }
 
 }

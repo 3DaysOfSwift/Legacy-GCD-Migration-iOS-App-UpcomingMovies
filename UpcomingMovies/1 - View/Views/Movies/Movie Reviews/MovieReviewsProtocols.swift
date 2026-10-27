@@ -26,11 +26,8 @@ protocol MovieReviewsViewModelProtocol {
 
 }
 
-protocol MovieReviewsInteractorProtocol {
-
-    func getMovieReviews(for movieId: Int, page: Int?,
-                         completion: @escaping (Result<[ReviewProtocol], Error>) -> Void)
-
+protocol MovieReviewsFeatureProviding {
+    func loadReviews(forMovieWithID movieID: Int, page: Int?) async throws -> [ReviewProtocol]
 }
 
 protocol MovieReviewsCoordinatorProtocol: AnyObject {
