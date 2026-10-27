@@ -8,19 +8,24 @@
 
 import XCTest
 @testable import UpcomingMovies
+@testable import UpcomingMoviesDomain
 
+@MainActor
 final class CustomListDetailViewModelTests: XCTestCase {
 
-    private var interactor: MockCustomListDetailInteractor!
+    private var accountUseCase: AccountUseCaseProtocolMock!
+    private var customListDetailFeature: CustomListDetailFeature!
 
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        interactor = MockCustomListDetailInteractor()
+    override func setUp() {
+        super.setUp()
+        accountUseCase = AccountUseCaseProtocolMock()
+        customListDetailFeature = CustomListDetailFeature(accountUseCase: accountUseCase)
     }
 
-    override func tearDownWithError() throws {
-        interactor = nil
-        try super.tearDownWithError()
+    override func tearDown() {
+        accountUseCase = nil
+        customListDetailFeature = nil
+        super.tearDown()
     }
 
     func testListName() {
@@ -43,7 +48,7 @@ final class CustomListDetailViewModelTests: XCTestCase {
     }
 
     private func createSUT(list: ListProtocol) -> CustomListDetailViewModel {
-        CustomListDetailViewModel(list, interactor: interactor)
+        CustomListDetailViewModel(list, customListDetailFeature: customListDetailFeature)
     }
 
 }

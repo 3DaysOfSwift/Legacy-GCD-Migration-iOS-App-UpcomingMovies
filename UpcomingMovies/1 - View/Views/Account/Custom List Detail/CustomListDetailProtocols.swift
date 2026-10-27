@@ -25,10 +25,4 @@ protocol CustomListDetailViewModelProtocol {
 
 }
 
-protocol CustomListDetailInteractorProtocol {
-
-    func getCustomListMovies(listId: String, completion: @escaping (Result<[MovieProtocol], Error>) -> Void)
-
-}
-
 protocol CustomListDetailCoordinatorProtocol: AnyObject, MovieDetailCoordinable {}

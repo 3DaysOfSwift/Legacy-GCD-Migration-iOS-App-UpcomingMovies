@@ -8,19 +8,6 @@
 
 @testable import UpcomingMovies
 
-final class MockCustomListDetailInteractor: CustomListDetailInteractorProtocol {
-
-    var getCustomListMoviesCallCount = 0
-    var getCustomListMoviesResult: Result<[MovieProtocol], Error>?
-    func getCustomListMovies(listId: String, completion: @escaping (Result<[MovieProtocol], Error>) -> Void) {
-        if let getCustomListMoviesResult {
-            completion(getCustomListMoviesResult)
-        }
-        getCustomListMoviesCallCount += 1
-    }
-
-}
-
 final class MockCustomListDetailViewModel: CustomListDetailViewModelProtocol {
 
     var listName: String?

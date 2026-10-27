@@ -8,12 +8,14 @@
 
 import Foundation
 
+@MainActor
 final class CustomListDetailViewModel: CustomListDetailViewModelProtocol {
 
     // MARK: - Dependencies
 
     private let list: ListProtocol
-    private let interactor: CustomListDetailInteractorProtocol
+    private let customListDetailFeature: CustomListDetailFeature
+    private var loadTask: Task<Void, Never>?
 
     // MARK: - Reactive properties
 
@@ -39,9 +41,9 @@ final class CustomListDetailViewModel: CustomListDetailViewModelProtocol {
 
     // MARK: - Initializers
 
-    init(_ list: ListProtocol, interactor: CustomListDetailInteractorProtocol) {
+    init(_ list: ListProtocol, customListDetailFeature: CustomListDetailFeature) {
         self.list = list
-        self.interactor = interactor
+        self.customListDetailFeature = customListDetailFeature
     }
 
     // MARK: - CustomListDetailViewModelProtocol
@@ -59,14 +61,17 @@ final class CustomListDetailViewModel: CustomListDetailViewModelProtocol {
     }
 
     func getListMovies() {
-        interactor.getCustomListMovies(listId: list.id, completion: { result in
-            switch result {
-            case .success(let movies):
+        guard loadTask == nil else { return }
+        loadTask = Task { [weak self] in
+            guard let self else { return }
+            defer { self.loadTask = nil }
+            do {
+                let movies = try await self.customListDetailFeature.loadMovies(forListWithID: self.list.id)
                 self.viewState.value = self.processResult(movies)
-            case .failure(let error):
+            } catch {
                 self.viewState.value = .error(error)
             }
-        })
+        }
     }
 
     // MARK: - Private
