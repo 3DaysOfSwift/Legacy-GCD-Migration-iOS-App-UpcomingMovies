@@ -10,26 +10,28 @@ import XCTest
 @testable import UpcomingMovies
 @testable import UpcomingMoviesDomain
 
-final class MovieCreditsInteractorTests: XCTestCase {
+@MainActor
+final class MovieCreditsFeatureTests: XCTestCase {
 
-    private var interactor: MovieCreditsInteractor!
+    private var movieCreditsFeature: MovieCreditsFeature!
     private var mockMovieUseCase: MovieUseCaseProtocolMock!
 
-    override func setUpWithError() throws {
-        try super.setUpWithError()
+    override func setUp() {
+        super.setUp()
         mockMovieUseCase = MovieUseCaseProtocolMock()
-        interactor = MovieCreditsInteractor(movieUseCase: mockMovieUseCase)
+        movieCreditsFeature = MovieCreditsFeature(movieUseCase: mockMovieUseCase)
     }
 
-    override func tearDownWithError() throws {
-        interactor = nil
+    override func tearDown() {
+        movieCreditsFeature = nil
         mockMovieUseCase = nil
-        try super.tearDownWithError()
+        super.tearDown()
     }
 
-    func testGetMovieCreditsCalled() {
+    func testLoadCreditsRequestsTheMovieUseCase() async throws {
         // Act
-        interactor.getMovieCredits(for: 1, page: 1, completion: { _ in })
+        mockMovieUseCase.getMovieCreditsResult = .success(.withEmptyValues())
+        _ = try await movieCreditsFeature.loadCredits(forMovieWithID: 1)
         // Assert
         XCTAssertEqual(mockMovieUseCase.getMovieCreditsCallCount, 1)
     }

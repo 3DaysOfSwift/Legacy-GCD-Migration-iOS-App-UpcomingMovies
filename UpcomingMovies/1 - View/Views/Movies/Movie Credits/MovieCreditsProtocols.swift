@@ -29,13 +29,6 @@ protocol MovieCreditsViewModelProtocol {
 
 }
 
-protocol MovieCreditsInteractorProtocol {
-
-    func getMovieCredits(for movieId: Int, page: Int?,
-                         completion: @escaping (Result<MovieCreditsProtocol, Error>) -> Void)
-
-}
-
 protocol MovieCreditsSectionManagerProtocol {
 
     var sections: [MovieCreditsCollapsibleSection] { get }

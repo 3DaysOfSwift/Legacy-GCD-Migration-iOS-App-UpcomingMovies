@@ -17,22 +17,22 @@ final class MovieCreditsAssembly: Assembly {
             MovieCreditsSectionManager()
         }
 
-        container.register(MovieCreditsInteractorProtocol.self) { resolver in
+        container.register(MovieCreditsFeature.self) { resolver in
             guard let useCaseProvider = resolver.resolve(UseCaseProviderProtocol.self) else {
                 fatalError("UseCaseProviderProtocol dependency could not be resolved")
             }
-            return MovieCreditsInteractor(movieUseCase: useCaseProvider.movieUseCase())
+            return MovieCreditsFeature(movieUseCase: useCaseProvider.movieUseCase())
         }
 
         container.register(MovieCreditsViewModelProtocol.self) { (resolver, movieId: Int, movieTitle: String) in
             guard let factory = resolver.resolve(MovieCreditsSectionManagerProtocol.self) else {
                 fatalError("MovieCreditsFactoryProtocol dependency could not be resolved")
             }
-            guard let interactor = resolver.resolve(MovieCreditsInteractorProtocol.self) else {
-                fatalError("MovieCreditsInteractorProtocol dependency could not be resolved")
+            guard let movieCreditsFeature = resolver.resolve(MovieCreditsFeature.self) else {
+                fatalError("MovieCreditsFeature dependency could not be resolved")
             }
             return MovieCreditsViewModel(movieId: movieId, movieTitle: movieTitle,
-                                         interactor: interactor, factory: factory)
+                                         movieCreditsFeature: movieCreditsFeature, factory: factory)
         }
     }
 

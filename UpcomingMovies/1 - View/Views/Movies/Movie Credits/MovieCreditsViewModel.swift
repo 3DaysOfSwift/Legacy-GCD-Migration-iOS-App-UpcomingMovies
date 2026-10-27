@@ -8,6 +8,7 @@
 
 import Foundation
 
+@MainActor
 final class MovieCreditsViewModel: MovieCreditsViewModelProtocol {
 
     // MARK: - Dependencies
@@ -15,8 +16,9 @@ final class MovieCreditsViewModel: MovieCreditsViewModelProtocol {
     private let movieId: Int
     private(set) var movieTitle: String
 
-    private let interactor: MovieCreditsInteractorProtocol
+    private let movieCreditsFeature: MovieCreditsFeature
     private var factory: MovieCreditsSectionManagerProtocol
+    private var loadTask: Task<Void, Never>?
 
     // MARK: - Reactive properties
 
@@ -34,12 +36,12 @@ final class MovieCreditsViewModel: MovieCreditsViewModelProtocol {
 
     init(movieId: Int,
          movieTitle: String,
-         interactor: MovieCreditsInteractorProtocol,
+         movieCreditsFeature: MovieCreditsFeature,
          factory: MovieCreditsSectionManagerProtocol) {
         self.movieId = movieId
         self.movieTitle = movieTitle
 
-        self.interactor = interactor
+        self.movieCreditsFeature = movieCreditsFeature
         self.factory = factory
     }
 
@@ -84,18 +86,21 @@ final class MovieCreditsViewModel: MovieCreditsViewModelProtocol {
     }
 
     func getMovieCredits(showLoader: Bool = false) {
+        guard loadTask == nil else { return }
         startLoading.value = showLoader
-        interactor.getMovieCredits(for: movieId, page: nil, completion: { result in
+        loadTask = Task { [weak self] in
+            guard let self else { return }
+            defer { self.loadTask = nil }
             self.startLoading.value = false
-            switch result {
-            case .success(let movieCredits):
+            do {
+                let movieCredits = try await self.movieCreditsFeature.loadCredits(forMovieWithID: self.movieId)
                 self.factory.updateSection(type: .cast, enabled: !movieCredits.cast.isEmpty)
                 self.factory.updateSection(type: .crew, enabled: !movieCredits.crew.isEmpty)
                 self.viewState.value = self.processResult(movieCredits)
-            case .failure(let error):
+            } catch {
                 self.viewState.value = .error(error)
             }
-        })
+        }
     }
 
     // MARK: - Private

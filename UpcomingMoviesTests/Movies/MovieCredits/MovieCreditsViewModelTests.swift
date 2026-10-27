@@ -8,27 +8,32 @@
 
 import XCTest
 @testable import UpcomingMovies
+@testable import UpcomingMoviesDomain
 
+@MainActor
 final class MovieCreditsViewModelTests: XCTestCase {
 
-    private var mockInteractor: MockMovieCreditsInteractor!
+    private var mockMovieUseCase: MovieUseCaseProtocolMock!
+    private var movieCreditsFeature: MovieCreditsFeature!
     private var mockSectionManager: MockMovieCreditsSectionManager!
     private var viewModelToTest: MovieCreditsViewModelProtocol!
 
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        mockInteractor = MockMovieCreditsInteractor()
+    override func setUp() {
+        super.setUp()
+        mockMovieUseCase = MovieUseCaseProtocolMock()
+        movieCreditsFeature = MovieCreditsFeature(movieUseCase: mockMovieUseCase)
         mockSectionManager = MockMovieCreditsSectionManager()
 
         viewModelToTest = MovieCreditsViewModel(movieId: 1, movieTitle: "Movie 1",
-                                                interactor: mockInteractor, factory: mockSectionManager)
+                                                movieCreditsFeature: movieCreditsFeature, factory: mockSectionManager)
     }
 
-    override func tearDownWithError() throws {
-        mockInteractor = nil
+    override func tearDown() {
+        mockMovieUseCase = nil
+        movieCreditsFeature = nil
         mockSectionManager = nil
         viewModelToTest = nil
-        try super.tearDownWithError()
+        super.tearDown()
     }
 
     func testMovieCreditsTitle() {
@@ -46,7 +51,7 @@ final class MovieCreditsViewModelTests: XCTestCase {
             XCTAssertEqual(state, .empty)
             expectation.fulfill()
         }
-        mockInteractor.getMovieCreditsResult = Result.success(MockMovieCreditsProtocol(creditCast: [], creditCrew: []))
+        mockMovieUseCase.getMovieCreditsResult = .success(.withEmptyValues())
         viewModelToTest.getMovieCredits(showLoader: false)
         // Assert
         wait(for: [expectation], timeout: 1.0)
@@ -60,8 +65,7 @@ final class MovieCreditsViewModelTests: XCTestCase {
             XCTAssertEqual(state, .populated([MockCastProtocol(id: 1)], [MockCrewProtocol(id: 1)]))
             expectation.fulfill()
         }
-        let movieCredits = MockMovieCreditsProtocol(creditCast: [MockCastProtocol(id: 1)], creditCrew: [MockCrewProtocol(id: 1)])
-        mockInteractor.getMovieCreditsResult = Result.success(movieCredits)
+        mockMovieUseCase.getMovieCreditsResult = .success(.with(cast: [.with(id: 1)], crew: [.with(id: 1)]))
         viewModelToTest.getMovieCredits(showLoader: false)
         // Assert
         wait(for: [expectation], timeout: 1.0)
@@ -76,7 +80,7 @@ final class MovieCreditsViewModelTests: XCTestCase {
             XCTAssertEqual(state, .error(errorToTest))
             expectation.fulfill()
         }
-        mockInteractor.getMovieCreditsResult = Result.failure(errorToTest)
+        mockMovieUseCase.getMovieCreditsResult = Result.failure(errorToTest)
         viewModelToTest.getMovieCredits(showLoader: false)
         // Assert
         wait(for: [expectation], timeout: 1.0)
@@ -103,10 +107,9 @@ final class MovieCreditsViewModelTests: XCTestCase {
         ]
         mockSectionManager.sections = sectionsToTest
 
-        let castToTest = [MockCastProtocol()]
-        let crewToTest = [MockCrewProtocol()]
-        let movieCreditsToTest = MockMovieCreditsProtocol(creditCast: castToTest, creditCrew: crewToTest)
-        mockInteractor.getMovieCreditsResult = Result.success(movieCreditsToTest)
+        let castToTest = [Cast.with()]
+        let crewToTest = [Crew.with()]
+        mockMovieUseCase.getMovieCreditsResult = .success(.with(cast: castToTest, crew: crewToTest))
         // Act
         viewModelToTest.getMovieCredits(showLoader: false)
         let numberOfItems = viewModelToTest.numberOfItems(for: 0)
@@ -122,10 +125,9 @@ final class MovieCreditsViewModelTests: XCTestCase {
         ]
         mockSectionManager.sections = sectionsToTest
 
-        let castToTest = [MockCastProtocol()]
-        let crewToTest = [MockCrewProtocol()]
-        let movieCreditsToTest = MockMovieCreditsProtocol(creditCast: castToTest, creditCrew: crewToTest)
-        mockInteractor.getMovieCreditsResult = Result.success(movieCreditsToTest)
+        let castToTest = [Cast.with()]
+        let crewToTest = [Crew.with()]
+        mockMovieUseCase.getMovieCreditsResult = .success(.with(cast: castToTest, crew: crewToTest))
         // Act
         viewModelToTest.getMovieCredits(showLoader: false)
         let numberOfItems = viewModelToTest.numberOfItems(for: 1)

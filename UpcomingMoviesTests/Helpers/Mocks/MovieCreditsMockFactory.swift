@@ -9,17 +9,6 @@
 @testable import UpcomingMovies
 import UpcomingMoviesDomain
 
-final class MockMovieCreditsInteractor: MovieCreditsInteractorProtocol {
-
-    var getMovieCreditsResult: Result<MovieCreditsProtocol, Error>?
-    func getMovieCredits(for movieId: Int, page: Int?, completion: @escaping (Result<MovieCreditsProtocol, Error>) -> Void) {
-        if let getMovieCreditsResult {
-            completion(getMovieCreditsResult)
-        }
-    }
-
-}
-
 final class MockMovieCreditsSectionManager: MovieCreditsSectionManagerProtocol {
 
     var sections: [MovieCreditsCollapsibleSection] = []
