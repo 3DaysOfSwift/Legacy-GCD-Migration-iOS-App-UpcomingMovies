@@ -8,11 +8,13 @@
 
 import Foundation
 
+@MainActor
 final class CustomListsViewModel: CustomListsViewModelProtocol, SimpleViewStateProcessable {
 
     // MARK: - Dependencies
 
-    private let interactor: CustomListsInteractorProtocol
+    private let customListsFeature: CustomListsFeature
+    private var loadTask: Task<Void, Never>?
 
     // MARK: - Reactive properties
 
@@ -35,8 +37,8 @@ final class CustomListsViewModel: CustomListsViewModelProtocol, SimpleViewStateP
 
     // MARK: - Initializers
 
-    init(interactor: CustomListsInteractorProtocol) {
-        self.interactor = interactor
+    init(customListsFeature: CustomListsFeature) {
+        self.customListsFeature = customListsFeature
     }
 
     // MARK: - CustomListsViewModelProtocol
@@ -57,19 +59,21 @@ final class CustomListsViewModel: CustomListsViewModelProtocol, SimpleViewStateP
     // MARK: - Private
 
     private func fetchCustomLists(currentPage: Int, showLoader: Bool) {
+        guard loadTask == nil else { return }
         startLoading.value = showLoader
-        interactor.getCustomLists(page: currentPage, completion: { result in
+        loadTask = Task { [weak self] in
+            guard let self else { return }
+            defer { self.loadTask = nil }
             self.startLoading.value = false
-            switch result {
-            case .success(let lists):
-                let currentPage = self.viewState.value.currentPage
+            do {
+                let lists = try await self.customListsFeature.loadLists(page: currentPage)
                 self.viewState.value = self.processResult(lists,
                                                           currentPage: currentPage,
                                                           currentEntities: self.lists)
-            case .failure(let error):
+            } catch {
                 self.viewState.value = .error(error)
             }
-        })
+        }
     }
 
 }

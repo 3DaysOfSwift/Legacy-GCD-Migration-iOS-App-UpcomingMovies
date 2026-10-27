@@ -12,18 +12,18 @@ import UpcomingMoviesDomain
 final class CustomListsAssembly: Assembly {
 
     func assemble(container: Container) {
-        container.register(CustomListsInteractorProtocol.self) { resolver in
+        container.register(CustomListsFeature.self) { resolver in
             guard let useCaseProvider = resolver.resolve(UseCaseProviderProtocol.self) else {
                 fatalError("UseCaseProviderProtocol dependency could not be resolved")
             }
-            return CustomListsInteractor(accountUseCase: useCaseProvider.accountUseCase())
+            return CustomListsFeature(accountUseCase: useCaseProvider.accountUseCase())
         }
 
         container.register(CustomListsViewModelProtocol.self) { resolver in
-            guard let interactor = resolver.resolve(CustomListsInteractorProtocol.self) else {
-                fatalError("CustomListsInteractorProtocol dependency could not be resolved")
+            guard let customListsFeature = resolver.resolve(CustomListsFeature.self) else {
+                fatalError("CustomListsFeature dependency could not be resolved")
             }
-            return CustomListsViewModel(interactor: interactor)
+            return CustomListsViewModel(customListsFeature: customListsFeature)
         }
     }
 

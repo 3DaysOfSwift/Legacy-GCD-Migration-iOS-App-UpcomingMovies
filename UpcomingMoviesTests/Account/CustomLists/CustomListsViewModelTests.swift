@@ -8,36 +8,41 @@
 
 import XCTest
 @testable import UpcomingMovies
+@testable import UpcomingMoviesDomain
 
+@MainActor
 final class CustomListsViewModelTests: XCTestCase {
 
     typealias CustomListsState = SimpleViewState<ListProtocol>
 
-    private var mockInteractor: MockCustomListsInteractor!
+    private var customListsFeature: CustomListsFeature!
+    private var accountUseCase: AccountUseCaseProtocolMock!
     private var viewModelToTest: CustomListsViewModelProtocol!
 
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        mockInteractor = MockCustomListsInteractor()
-        viewModelToTest = CustomListsViewModel(interactor: mockInteractor)
+    override func setUp() {
+        super.setUp()
+        accountUseCase = AccountUseCaseProtocolMock()
+        customListsFeature = CustomListsFeature(accountUseCase: accountUseCase)
+        viewModelToTest = CustomListsViewModel(customListsFeature: customListsFeature)
     }
 
-    override func tearDownWithError() throws {
-        mockInteractor = nil
+    override func tearDown() {
+        customListsFeature = nil
+        accountUseCase = nil
         viewModelToTest = nil
-        try super.tearDownWithError()
+        super.tearDown()
     }
 
     func testGetCustomListsEmpty() {
         // Arrange
-        let customListsToTest: [ListProtocol] = []
+        let customListsToTest: [List] = []
         let expectation = XCTestExpectation(description: "Should get empty state")
         // Act
         viewModelToTest.viewState.bind { state in
             XCTAssertEqual(state, .empty)
             expectation.fulfill()
         }
-        mockInteractor.getCustomListsResult = Result.success(customListsToTest)
+        accountUseCase.getCustomListsResult = Result.success(customListsToTest)
         viewModelToTest.getCustomLists()
         // Assert
         wait(for: [expectation], timeout: 1.0)
@@ -45,8 +50,9 @@ final class CustomListsViewModelTests: XCTestCase {
 
     func testGetCustomListsPopulated() {
         // Arrange
-        let customListsToTest: [ListProtocol] = [MockListProtocol(id: "1"), MockListProtocol(id: "2")]
-        var statesToReceive: [CustomListsState] = [.paging(customListsToTest, next: 2), .populated(customListsToTest)]
+        let customListsToTest = [List.with(id: "1"), List.with(id: "2")]
+        let expectedLists = customListsToTest.map(ListModel.init)
+        var statesToReceive: [CustomListsState] = [.paging(expectedLists, next: 2)]
 
         let expectation = XCTestExpectation(description: "Should get populated state after a paging state")
         // Act
@@ -54,9 +60,7 @@ final class CustomListsViewModelTests: XCTestCase {
             XCTAssertEqual(state, statesToReceive.removeFirst())
             expectation.fulfill()
         }
-        mockInteractor.getCustomListsResult = Result.success(customListsToTest)
-        viewModelToTest.getCustomLists()
-        mockInteractor.getCustomListsResult = Result.success([])
+        accountUseCase.getCustomListsResult = Result.success(customListsToTest)
         viewModelToTest.getCustomLists()
         // Assert
         wait(for: [expectation], timeout: 1.0)
@@ -64,14 +68,15 @@ final class CustomListsViewModelTests: XCTestCase {
 
     func testGetCustomListsPaging() {
         // Arrange
-        let customListsToTest: [ListProtocol] = [MockListProtocol(id: "1"), MockListProtocol(id: "2")]
+        let customListsToTest = [List.with(id: "1"), List.with(id: "2")]
+        let expectedLists = customListsToTest.map(ListModel.init)
         let expectation = XCTestExpectation(description: "Should get paging state")
         // Act
         viewModelToTest.viewState.bind { state in
-            XCTAssertEqual(state, .paging(customListsToTest, next: 2))
+            XCTAssertEqual(state, .paging(expectedLists, next: 2))
             expectation.fulfill()
         }
-        mockInteractor.getCustomListsResult = Result.success(customListsToTest)
+        accountUseCase.getCustomListsResult = Result.success(customListsToTest)
         viewModelToTest.getCustomLists()
         // Assert
         wait(for: [expectation], timeout: 1.0)
@@ -86,7 +91,7 @@ final class CustomListsViewModelTests: XCTestCase {
             XCTAssertEqual(state, .error(errorToTest))
             expectation.fulfill()
         }
-        mockInteractor.getCustomListsResult = Result.failure(errorToTest)
+        accountUseCase.getCustomListsResult = Result.failure(errorToTest)
         viewModelToTest.getCustomLists()
         // Assert
         wait(for: [expectation], timeout: 1.0)

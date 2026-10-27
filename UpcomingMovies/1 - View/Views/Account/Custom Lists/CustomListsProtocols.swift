@@ -23,12 +23,6 @@ protocol CustomListsViewModelProtocol {
 
 }
 
-protocol CustomListsInteractorProtocol {
-
-    func getCustomLists(page: Int?, completion: @escaping (Result<[ListProtocol], Error>) -> Void)
-
-}
-
 protocol CustomListsCoordinatorProtocol: Coordinator {
 
     func showListDetail(for customList: ListProtocol)
