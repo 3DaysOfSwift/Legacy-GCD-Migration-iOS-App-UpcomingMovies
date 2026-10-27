@@ -10,41 +10,33 @@ import XCTest
 @testable import UpcomingMovies
 @testable import UpcomingMoviesDomain
 
-final class MovieReviewsInteractorTests: XCTestCase {
+@MainActor
+final class MovieReviewsFeatureTests: XCTestCase {
 
-    private var interactor: MovieReviewsInteractor!
+    private var movieReviewsFeature: MovieReviewsFeature!
     private var mockMovieUseCase: UpcomingMoviesDomain.MovieUseCaseProtocolMock!
 
-    override func setUpWithError() throws {
-        try super.setUpWithError()
+    override func setUp() {
+        super.setUp()
         mockMovieUseCase = MovieUseCaseProtocolMock()
-        interactor = MovieReviewsInteractor(movieUseCase: mockMovieUseCase)
+        movieReviewsFeature = MovieReviewsFeature(movieUseCase: mockMovieUseCase)
     }
 
-    override func tearDownWithError() throws {
-        interactor = nil
+    override func tearDown() {
+        movieReviewsFeature = nil
         mockMovieUseCase = nil
-        try super.tearDownWithError()
+        super.tearDown()
     }
 
-    func testGetMovieReviewsCalled() {
+    func testLoadReviewsRequestsTheMovieUseCase() async throws {
         // Arrange
         let reviewToTest = [Review.with()]
         mockMovieUseCase.getMovieReviewsResult = .success(reviewToTest)
 
-        let expectation = XCTestExpectation(description: "Should get reviews")
-        // Act
-        interactor.getMovieReviews(for: 1, page: 1, completion: { reviews in
-            guard let reviews = try? reviews.get() else {
-                XCTFail("No valid reviews")
-                return
-            }
-            XCTAssertEqual(reviews.map { $0.id }, reviewToTest.map { $0.id })
-            expectation.fulfill()
-        })
+        let reviews = try await movieReviewsFeature.loadReviews(forMovieWithID: 1, page: 1)
         // Assert
+        XCTAssertEqual(reviews.map(\.id), reviewToTest.map(\.id))
         XCTAssertEqual(mockMovieUseCase.getMovieReviewsCallCount, 1)
-        wait(for: [expectation], timeout: 1.0)
     }
 
 }
